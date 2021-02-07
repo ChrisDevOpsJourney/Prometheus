@@ -1,0 +1,73 @@
+# my global config
+global:
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  # scrape_timeout is set to the global default (10s).
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      # - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+
+# service discovery 
+
+    file_sd_configs:
+    - files:
+      - targets/prometheus-*.yml
+      refresh_interval: 1m
+
+  - job_name: 'nodes'
+    metrics_path: '/metrics'
+    file_sd_configs:
+    - files:
+      - targets/nodes-*.yml
+      refresh_interval: 1m
+    
+# relabel target 
+      
+    relabel_configs:
+    - source_labels:
+      - __scheme__
+      - __address__
+      - __metrics_path__
+      regex: '(http|https)(.*)'
+      separator: ""
+      target_label: 'endpoint'
+      replacement: '${1}://${2}'
+      action: replace
+    - regex: '(job|app)'
+      replacement: '${1}_name'
+      action: labelmap
+      
+# To delete targets which matched labels __address__ =~ specific IP.
+
+    #- source_labels:
+    #  - __address__
+    #  regex: "172.16.12.11.*"
+    #  action: drop
+
+# relabel metrics
+# To delete metrics which matched labels __name__ =~  go_gc_duration_seconds
+
+    metric_relabel_configs:
+    - source_labels:
+      - __name__
+      regex: "go_gc_duration_seconds.*"
+      action: drop
+[root@no
